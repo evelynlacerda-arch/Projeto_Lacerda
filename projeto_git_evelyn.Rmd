@@ -1,0 +1,57 @@
+---
+output: github_document
+---
+## Legenda: Esse output indica que o arquivo .Rmd será renderizado (convertido) para .md para ir para  o Github, através do knitr (pacote do R que serve para executar o código e gerar o documento final). 
+
+Assim, conseguimos misturar: texto, código R, resultados, figuras e tabelas, o que é ótimo para projetos científicos.
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  warning = FALSE,
+  error = FALSE,
+  message = FALSE,
+  eval=TRUE,
+  comment = "#>"
+)
+```
+
+## Legenda: 
+
+- collapse = true = aparecer o código e o resultado juntos (bom para organização). 
+- warning = false = não mostre avisos quando o este bloco de código for executado.
+- message = false = não mostrar mensagens dos pacotes carregados que não fazem parte da análise de dados.  
+- eval = false = não execute o código deste bloco, apenas mostre o código no documento.
+
+---
+title: "Projeto_Lacerda"
+author: "Evelyn Lacerda"
+date: "2026-08-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
