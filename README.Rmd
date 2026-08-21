@@ -1,0 +1,20 @@
+---
+title: "README"
+author: "Evelyn Lacerda"
+date: "2026-08-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  collapse = TRUE,
+  message = FALSE,
+  error = FALSE,
+  warning = FALSE,
+  eval = FALSE,
+  comment = "#>")
+                    
+```
+
+
