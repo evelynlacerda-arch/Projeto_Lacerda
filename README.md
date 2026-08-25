@@ -1,51 +1,29 @@
----
-output: github_document
----
-## Legenda: Esse output indica que o arquivo .Rmd será renderizado (convertido) para .md para ir para  o Github, através do knitr (pacote do R que serve para executar o código e gerar o documento final). 
+README
+================
+Evelyn Lacerda
+2026-08-21
 
-Assim, conseguimos misturar: texto, código R, resultados, figuras e tabelas, o que é ótimo para projetos científicos.
+## Legenda: Esse output indica que o arquivo .Rmd será renderizado (convertido) para .md para ir para o Github, através do knitr (pacote do R que serve para executar o código e gerar o documento final).
+
+Assim, conseguimos misturar: texto, código R, resultados, figuras e
+tabelas, o que é ótimo para projetos científicos.
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-```{r, include=FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  warning = FALSE,
-  error = FALSE,
-  message = FALSE,
-  eval=TRUE,
-  comment = "#>"
-)
-```
+## Legenda:
 
-## Legenda: 
+- collapse = true = aparecer o código e o resultado juntos (bom para
+  organização).
+- warning = false = não mostre avisos quando o este bloco de código for
+  executado.
+- message = false = não mostrar mensagens dos pacotes carregados que não
+  fazem parte da análise de dados.  
+- eval = false = não execute o código deste bloco, apenas mostre o
+  código no documento.
 
-- collapse = true = aparecer o código e o resultado juntos (bom para organização). 
-- warning = false = não mostre avisos quando o este bloco de código for executado.
-- message = false = não mostrar mensagens dos pacotes carregados que não fazem parte da análise de dados.  
-- eval = false = não execute o código deste bloco, apenas mostre o código no documento.
+\#ADICIONANDO LIVRARIAS
 
----
-title: "README"
-author: "Evelyn Lacerda"
-date: "2026-08-21"
-output: html_document
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(
-  echo = TRUE,
-  collapse = TRUE,
-  message = FALSE,
-  error = FALSE,
-  warning = FALSE,
-  eval = FALSE,
-  comment = "#>")
-                    
-```
-
-#ADICIONANDO LIVRARIAS 
-```{r}
+``` r
 library(tidyverse)
 library(ggpubr)
 library(terra)
@@ -55,27 +33,35 @@ library(sf)
 library(ggplot2)
 library(colourpicker)
 ```
-## Legenda: 
-Ao carregar pacotes, carregamos as funções das diferentes bibliotecas. 
 
-- tidyverse: coleção de pacotes para ciências de dados. Inclui: dplyr, ggplot2, readr, tibble, string etc. 
-- geobr: Baixa mapas oficiais do IBGE, não precisando baixar shapefiles manualmente. 
-- sf: Pacote mais importante para os dados espaciais. Permite: ler shapefiles, transformar coordenadas, fazer recortes espaciais e unir polígonos. 
-- ggpubr: Facilita gráficos científicos. 
-- dplyr: Manipulação de tabelas. Exemplos: filter(), mutate(), select(), summarise(). 
+## Legenda:
+
+Ao carregar pacotes, carregamos as funções das diferentes bibliotecas.
+
+- tidyverse: coleção de pacotes para ciências de dados. Inclui: dplyr,
+  ggplot2, readr, tibble, string etc.
+- geobr: Baixa mapas oficiais do IBGE, não precisando baixar shapefiles
+  manualmente.
+- sf: Pacote mais importante para os dados espaciais. Permite: ler
+  shapefiles, transformar coordenadas, fazer recortes espaciais e unir
+  polígonos.
+- ggpubr: Facilita gráficos científicos.
+- dplyr: Manipulação de tabelas. Exemplos: filter(), mutate(), select(),
+  summarise().
 - ggplot2: Construção de gráficos.
 
-#VAMOS EXTRAIR SHAPES, FORMATOS, VAI ESTAR O BRASIL COM OS BIOMAS E REGIÕES 
-#Criamos 3 objetos (Brasil, biomes e regioes)
+\#VAMOS EXTRAIR SHAPES, FORMATOS, VAI ESTAR O BRASIL COM OS BIOMAS E
+REGIÕES \#Criamos 3 objetos (Brasil, biomes e regioes)
 
-```{r}
+``` r
 brasil <- geobr::read_country(showProgress = FALSE, year = 2020)
 
 biomes <- geobr::read_biomes(showProgress = FALSE, year = 2019)
 
 regioes <- geobr::read_region(showProgress = FALSE, year = 2020)
 ```
-```{r}
+
+``` r
 ## Visualização dos mapas: Brasil, Biomas e Regiões
 
 # Mapa 1 — Contorno do Brasil
@@ -217,27 +203,35 @@ print(map_biomes)
 print(map_regioes)
 ```
 
-#FAZER O PRIMEIRO OBJETO DOS DADOS BRUTOS DATA FRAME - DF
-#OS 20 ANOS SÃO PQ OS DADOS ESTÃO 20 ANOS A FRENTE, POR ISSO A MODIFICAÇÃO PARA MENOS
-```{r}
+\#FAZER O PRIMEIRO OBJETO DOS DADOS BRUTOS DATA FRAME - DF \#OS 20 ANOS
+SÃO PQ OS DADOS ESTÃO 20 ANOS A FRENTE, POR ISSO A MODIFICAÇÃO PARA
+MENOS
+
+``` r
 df <- read_rds("data-raw/data-set-xco2-br.rds") |> 
   mutate(year = year - 20)
 ```
-#DAR UMA OLHADINHA NO BANCO DE DADOS E TAMBÉM FILTRAR O quality_flag 
-```{r}
+
+\#DAR UMA OLHADINHA NO BANCO DE DADOS E TAMBÉM FILTRAR O quality_flag
+
+``` r
 glimpse(df |> 
            filter(xco2_quality_flag == 0))
 ```
 
-#Queremos ver se os pontos amostrados dos nossos dados vão cair em cima da região de foco 
+\#Queremos ver se os pontos amostrados dos nossos dados vão cair em cima
+da região de foco
 
-```{r}
+``` r
 df_amostra <- df |> 
   filter(xco2_quality_flag == 0) |> 
   sample_n(1000)
 ```
-#PONTOS DE xco2 DENTRO DOS BIOMAS (ESTÁ DENTRO DA MINHA ÁREA DE ESTUDO?)
-```{r}
+
+\#PONTOS DE xco2 DENTRO DOS BIOMAS (ESTÁ DENTRO DA MINHA ÁREA DE
+ESTUDO?)
+
+``` r
 biomes |> 
   ggplot() +
   geom_sf(
@@ -257,7 +251,8 @@ biomes |>
     size = 1
   )
 ```
-```{r}
+
+``` r
 regioes |> 
   ggplot() +
   geom_sf(
@@ -277,8 +272,10 @@ regioes |>
     size = 1
   )
 ```
+
 # Transformar o df de XCO2 em objeto espacial (sf)
-```{r}
+
+``` r
 df_sf <- df |> 
   filter(xco2_quality_flag == 0) |> 
   st_as_sf(
@@ -287,44 +284,48 @@ df_sf <- df |>
     remove = FALSE) 
 ```
 
-#AGORA FAZER O RECORTE PARA A REGIÃO GEOECONÔMICA CENTRO-SUL DO BRASIL
+\#AGORA FAZER O RECORTE PARA A REGIÃO GEOECONÔMICA CENTRO-SUL DO BRASIL
 
-#1) BAIXAR O SHP DE MUNICÍPIOS DO BRASIL, NO SITE DO IBGE
-#   DEPOIS DAR UMA OLHADA NO BANCO DE DADOS 
+\#1) BAIXAR O SHP DE MUNICÍPIOS DO BRASIL, NO SITE DO IBGE \# DEPOIS DAR
+UMA OLHADA NO BANCO DE DADOS
 
-```{r}
+``` r
 municipios <- st_read("data-raw/BR_Municipios_2025/BR_Municipios_2025.shp")
 
 glimpse(municipios)
 ```
 
-```{r}
+``` r
 st_crs(municipios)
 
 names(municipios)
 ```
 
-#Conferindo se na minha mala existe os 27 estados
-```{r}
+\#Conferindo se na minha mala existe os 27 estados
+
+``` r
 sort(unique(municipios$SIGLA_UF))
 ```
-#Ver quantos municípios existem na malha
-```{r}
+
+\#Ver quantos municípios existem na malha
+
+``` r
 municipios |> 
   count(SIGLA_UF, sort = TRUE) 
 ```
 
-#Criar mapa simples com todos os limites, criar visualização 
+\#Criar mapa simples com todos os limites, criar visualização
 
-```{r}
+``` r
 ggplot(municipios) +
   geom_sf() +
   theme_minimal()
 ```
- 
-#Quais municípios entram na região geoeconômica Centro-Sul?
-#segundo as bases são esses 
-```{r}
+
+\#Quais municípios entram na região geoeconômica Centro-Sul? \#segundo
+as bases são esses
+
+``` r
 municipios_centro_sul <- municipios |> 
   filter(
     SIGLA_UF %in% c(
@@ -335,15 +336,8 @@ municipios_centro_sul <- municipios |>
   )
 ```
 
-#Conferir quantos municipios tem dentro dos estados selecionados
-```{r}
+\#Conferir quantos municipios tem dentro dos estados selecionados
+
+``` r
 nrow(municipios_centro_sul)
 ```
-
-
-
-
-
-
-
-
