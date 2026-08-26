@@ -340,6 +340,46 @@ municipios_centro_sul <- municipios |>
 nrow(municipios_centro_sul)
 ```
 
+#Unir todos os municipios 
+```{r}
+centro_sul <- municipios_centro_sul |> 
+  summarise()
+```
+
+#visualizar
+```{r}
+ggplot() +
+  geom_sf(
+    data = centro_sul,
+    fill = "#E75480",
+    color = "#1a1a2e",
+    linewidth = 0.7
+  ) +
+  theme_minimal() +
+  labs(
+    title = "Região Centro-Sul do Brasil"
+  )
+```
+#Colocar os pontos de XCO₂ sobre a região
+```{r}
+ggplot() +
+  geom_sf(
+    data = centro_sul,
+    fill = "#E75480",
+    color = "#1a1a2e",
+    linewidth = 0.7
+  ) +
+  geom_sf(
+    data = df_sf,
+    color = "gray",
+    size = 0.5
+  ) +
+  theme_minimal() +
+  labs(
+    title = "Pontos de XCO₂ na região Centro-Sul"
+  )
+```
+
 
 
 
