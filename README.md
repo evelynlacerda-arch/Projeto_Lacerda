@@ -1,7 +1,3 @@
-README
-================
-Evelyn Lacerda
-2026-08-21
 
 ## Legenda: Esse output indica que o arquivo .Rmd será renderizado (convertido) para .md para ir para o Github, através do knitr (pacote do R que serve para executar o código e gerar o documento final).
 
@@ -30,7 +26,6 @@ library(terra)
 library(geobr)
 library(vegan)
 library(sf)
-library(ggplot2)
 library(colourpicker)
 ```
 
@@ -54,11 +49,15 @@ Ao carregar pacotes, carregamos as funções das diferentes bibliotecas.
 REGIÕES \#Criamos 3 objetos (Brasil, biomes e regioes)
 
 ``` r
-brasil <- geobr::read_country(showProgress = FALSE, year = 2020)
+brasil <- read_country(showProgress = FALSE, year = 2020)
 
-biomes <- geobr::read_biomes(showProgress = FALSE, year = 2019)
+biomes <- read_biomes(showProgress = FALSE, year = 2019)
 
-regioes <- geobr::read_region(showProgress = FALSE, year = 2020)
+regioes <- read_region(showProgress = FALSE, year = 2020)
+
+municipios <- read_municipality(showProgress = FALSE, year = 2020)
+
+micro_regiao <- read_micro_region(showProgress = FALSE, year = 2022)
 ```
 
 ``` r
@@ -199,9 +198,21 @@ map_regioes <- ggplot(regioes) +
 # Exibir os mapas
 
 print(map_country)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+
+``` r
 print(map_biomes)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-4-2.png)<!-- -->
+
+``` r
 print(map_regioes)
 ```
+
+![](README_files/figure-gfm/unnamed-chunk-4-3.png)<!-- -->
 
 \#FAZER O PRIMEIRO OBJETO DOS DADOS BRUTOS DATA FRAME - DF \#OS 20 ANOS
 SÃO PQ OS DADOS ESTÃO 20 ANOS A FRENTE, POR ISSO A MODIFICAÇÃO PARA
@@ -209,14 +220,29 @@ MENOS
 
 ``` r
 df <- read_rds("data-raw/data-set-xco2-br.rds") |> 
-  mutate(year = year - 20)
+  mutate(year = year - 20) |> 
+  filter( 
+    year > 2014,
+    xco2_quality_flag == 0
+    )
 ```
 
 \#DAR UMA OLHADINHA NO BANCO DE DADOS E TAMBÉM FILTRAR O quality_flag
 
 ``` r
-glimpse(df |> 
-           filter(xco2_quality_flag == 0))
+glimpse(df)
+#> Rows: 12,133,595
+#> Columns: 10
+#> $ longitude         <dbl> -46.12087, -46.12536, -46.13605, -46.84245, -46.8293…
+#> $ latitude          <dbl> -31.31432, -31.29573, -31.30282, -28.14707, -28.1119…
+#> $ time              <dttm> 2035-01-01 13:51:51, 2035-01-01 13:51:51, 2035-01-0…
+#> $ xco2              <dbl> 396.5413, 396.3516, 396.2066, 394.8420, 395.9993, 39…
+#> $ xco2_quality_flag <int> 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+#> $ xco2_incerteza    <dbl> 0.3962019, 0.4802780, 0.5125918, 0.6853966, 0.626221…
+#> $ path              <chr> "data-raw/xco2/oco2_LtCO2_150101_B11210Ar_2408192344…
+#> $ year              <dbl> 2015, 2015, 2015, 2015, 2015, 2015, 2015, 2015, 2015…
+#> $ month             <dbl> 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1…
+#> $ day               <int> 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1…
 ```
 
 \#Queremos ver se os pontos amostrados dos nossos dados vão cair em cima
@@ -224,7 +250,6 @@ da região de foco
 
 ``` r
 df_amostra <- df |> 
-  filter(xco2_quality_flag == 0) |> 
   sample_n(1000)
 ```
 
@@ -252,6 +277,10 @@ biomes |>
   )
 ```
 
+![](README_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+
+## Pontos de XCO2 dentro dos estados
+
 ``` r
 regioes |> 
   ggplot() +
@@ -273,11 +302,12 @@ regioes |>
   )
 ```
 
+![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+
 # Transformar o df de XCO2 em objeto espacial (sf)
 
 ``` r
 df_sf <- df |> 
-  filter(xco2_quality_flag == 0) |> 
   st_as_sf(
     coords = c("longitude", "latitude"),
     crs = 4326,
@@ -290,98 +320,94 @@ df_sf <- df |>
 UMA OLHADA NO BANCO DE DADOS
 
 ``` r
-municipios <- st_read("data-raw/BR_Municipios_2025/BR_Municipios_2025.shp")
-
-glimpse(municipios)
-```
-
-``` r
-st_crs(municipios)
-
-names(municipios)
-```
-
-\#Conferindo se na minha mala existe os 27 estados
-
-``` r
-sort(unique(municipios$SIGLA_UF))
-```
-
-\#Ver quantos municípios existem na malha
-
-``` r
-municipios |> 
-  count(SIGLA_UF, sort = TRUE) 
-```
-
-\#Criar mapa simples com todos os limites, criar visualização
-
-``` r
-ggplot(municipios) +
-  geom_sf() +
-  theme_minimal()
-```
-
-\#Quais municípios entram na região geoeconômica Centro-Sul? \#segundo
-as bases são esses
-
-``` r
-municipios_centro_sul <- municipios |> 
-  filter(
-    SIGLA_UF %in% c(
-      "PR", "SC", "RS",
-      "SP", "RJ", "MG", "ES",
-      "GO", "MS", "DF"
-    )
-  )
-```
-
-\#Conferir quantos municipios tem dentro dos estados selecionados
-
-``` r
-nrow(municipios_centro_sul)
-```
-
-\#Unir todos os municipios
-
-``` r
-centro_sul <- municipios_centro_sul |> 
-  summarise()
-```
-
-\#visualizar
-
-``` r
-ggplot() +
+micro_regiao |> 
+  filter(abbrev_state == "MT") |> 
+  ggplot() +
   geom_sf(
-    data = centro_sul,
-    fill = "#E75480",
+    aes(fill = name_micro),
     color = "#1a1a2e",
-    linewidth = 0.7
+    linewidth = 0.5
   ) +
-  theme_minimal() +
-  labs(
-    title = "Região Centro-Sul do Brasil"
-  )
+  geom_sf_text(
+    aes(label = name_micro),
+    size = 3,
+    color = "black"
+  ) +
+  scale_fill_viridis_d()
 ```
 
-\#Colocar os pontos de XCO₂ sobre a região
+![](README_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
 
 ``` r
-ggplot() +
+mg_list_off <- c("Januária","Janaúba","Montes Claros", "Salinas", "Grão Mogol", "Araçuaí", "Almenara","Nanuque",
+                 "Pedra Azul")
+es_list_off <- c("Barra de São Francisco","Montanha","São Mateus")
+to_list_on <- c("Rio Formoso","Gurupi","Dianópolis")
+mt_list_on <- c("Alto Pantanal", "Cuiabá","Primavera do Leste","Rondonópolis", "Alto Araguaia","Tesouro","Médio Araguaia")
+
+# micro_mg_off <- micro_regiao |> 
+#   filter(
+#     abbrev_state == "MG",
+#     name_micro %in% mg_list_off
+#   )
+
+# micro_mg_off |>
+#   filter(abbrev_state %in% estados,
+#          ) 
+
+cntr <- municipios |> 
+  st_centroid()
+
+coord <- cntr |> 
+  st_coordinates()
+
+municipios  <- municipios |> 
+  mutate(
+    longitude = coord[,"X"],
+    latitude = coord[,"Y"]
+  ) 
+
+cntr <- st_transform(cntr, st_crs(micro_regiao))
+cntr_classificado <- st_join(cntr, micro_regiao |> 
+                               select(geometry, name_micro), join = st_within) 
+
+lista_muni_mg <- cntr_classificado |> 
+  filter(abbrev_state == "MG",
+         name_micro %in% mg_list_off) |> 
+  pull(name_muni)
+
+lista_muni_es <- cntr_classificado |> 
+  filter(abbrev_state == "ES",
+         name_micro %in% es_list_off) |> 
+  pull(name_muni)
+
+lista_muni_to <- cntr_classificado |> 
+  filter(abbrev_state == "TO",
+         !(name_micro %in% to_list_on)) |> 
+  pull(name_muni)
+
+lista_muni_mt <- cntr_classificado |> 
+  filter(abbrev_state == "MT",
+         !(name_micro %in% mt_list_on)) |> 
+  pull(name_muni)
+```
+
+``` r
+estados <- c("RS","SC","PR","SP","MS",
+             "RJ","ES","GO","MT","MG","TO","DF")
+municipios |>
+  filter(abbrev_state %in% estados,
+         !(name_muni %in% lista_muni_mg),
+         !(name_muni %in% lista_muni_es),
+         !(name_muni %in% lista_muni_to),
+         !(name_muni %in% lista_muni_mt)
+         ) |> 
+  ggplot() +
   geom_sf(
-    data = centro_sul,
-    fill = "#E75480",
+    aes(fill = abbrev_state),
     color = "#1a1a2e",
-    linewidth = 0.7
-  ) +
-  geom_sf(
-    data = df_sf,
-    color = "gray",
-    size = 0.5
-  ) +
-  theme_minimal() +
-  labs(
-    title = "Pontos de XCO₂ na região Centro-Sul"
+    linewidth = 0.5
   )
 ```
+
+![](README_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
