@@ -1,8 +1,21 @@
 
-## Legenda: Esse output indica que o arquivo .Rmd será renderizado (convertido) para .md para ir para o Github, através do knitr (pacote do R que serve para executar o código e gerar o documento final).
+## MODELAGEM COMPUTACIONAL DAS ANOMALIAS DE XCO2 NO CENTRO-SUL DO BRASIL
 
-Assim, conseguimos misturar: texto, código R, resultados, figuras e
-tabelas, o que é ótimo para projetos científicos.
+O projeto busca compreender a dinâmica temporal das anomalias de XCO₂ no
+Centro-Sul do Brasil e investigar sua relação com eventos climáticos
+extremos e fatores ambientais. Além disso, pretende-se utilizar técnicas
+de inteligência artificial para identificar padrões nas anomalias de CO₂
+e realizar previsões de sua ocorrência. Espera-se, com isso, ampliar a
+compreensão das interações entre o ciclo do carbono, as condições
+ambientais e os eventos climáticos extremos, contribuindo para o
+monitoramento das mudanças climáticas e para o desenvolvimento de
+estratégias de mitigação, especialmente no contexto agrícola.
+
+Prof. Dr. Alan Rodrigo Panosso Orientador — Departamento de Ciências
+Exatas - FCAV/Unesp Email: <alan.panosso@unesp.br>
+
+Mestranda Evelyn Lacerda PPG Agronomia (Ciência do Solo) - FCAV/Unesp
+Email: <evelyn.lacerda@unesp.br>
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
