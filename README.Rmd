@@ -73,8 +73,8 @@ micro_regiao <- read_micro_region(showProgress = FALSE, year = 2022)
 
 map_country <- ggplot(brasil) +
   geom_sf(
-    fill = "#880E4F",
-    color = "#FAD1E3",
+    fill = "#8A7AA6",
+    color = "#FAF9F6",
     linewidth = 0.8
   ) +
   labs(
@@ -84,23 +84,23 @@ map_country <- ggplot(brasil) +
   ) +
   theme_void(base_family = "serif") +
   theme(
-    plot.background  = element_rect(fill = "#0d1b2a", color = NA),
-    panel.background = element_rect(fill = "#0d1b2a", color = NA),
+    plot.background  = element_rect(fill = "#FAF9F6", color = NA),
+    panel.background = element_rect(fill = "#FAF9F6", color = NA),
     plot.title       = element_text(
-      color = "#FAD1E3",
+      color = "#2E4A62",
       size = 22,
       face = "bold",
       hjust = 0.5,
       margin = margin(t = 16, b = 4)
     ),
     plot.subtitle    = element_text(
-      color = "#FAD1E3",
+      color = "#2E4A62",
       size = 13,
       hjust = 0.5,
       margin = margin(b = 8)
     ),
     plot.caption     = element_text(
-      color = "#FAD1E3",
+      color = "#2E4A62",
       size = 8,
       hjust = 1,
       margin = margin(b = 10, r = 12)
@@ -367,10 +367,10 @@ estados <- c("RS","SC","PR","SP","MS",
              "RJ","ES","GO","MT","MG","TO","DF")
 municipios |>
   filter(abbrev_state %in% estados,
-         !(name_muni %in% lista_muni_mg),
-         !(name_muni %in% lista_muni_es),
-         !(name_muni %in% lista_muni_to),
-         !(name_muni %in% lista_muni_mt)
+         !(name_muni %in% lista_muni_mg & abbrev_state == "MG") ,
+         !(name_muni %in% lista_muni_es & abbrev_state == "ES") ,
+         !(name_muni %in% lista_muni_to & abbrev_state == "TO") ,
+         !(name_muni %in% lista_muni_mt & abbrev_state == "MT") 
          ) |> 
   ggplot() +
   geom_sf(
@@ -379,4 +379,126 @@ municipios |>
     linewidth = 0.5
   )
 ```
+```{r}
+# Estados que fazem parte do recorte
+ufs_centro_sul <- c("RS", "SC", "PR", "SP", "MS",
+                    "RJ", "ES", "GO", "MT", "MG", "TO", "DF")
+
+```
+
+```{r}
+# Selecionar os municípios que pertencem ao recorte
+centro_sul <- municipios |>
+  filter(
+    abbrev_state %in% c("RS", "SC", "PR", "SP", "MS",
+                        "RJ", "ES", "GO", "MT", "MG", "TO", "DF"),
+    !(name_muni %in% lista_muni_mg & abbrev_state == "MG"),
+    !(name_muni %in% lista_muni_es & abbrev_state == "ES"),
+    !(name_muni %in% lista_muni_to & abbrev_state == "TO"),
+    !(name_muni %in% lista_muni_mt & abbrev_state == "MT")
+  ) |>
+  st_make_valid() |>
+  summarise(
+    geometry = st_union(geometry)
+  )
+
+```
+
+```{r}
+# Estados que fazem parte do recorte
+ufs_centro_sul <- c("RS", "SC", "PR", "SP", "MS",
+                   "RJ", "ES", "GO", "MT", "MG", "TO", "DF")
+
+
+# Selecionar os municípios e dissolver em um único polígono
+centro_sul <- municipios |>
+  filter(
+    abbrev_state %in% ufs_centro_sul,
+    !(name_muni %in% lista_muni_mg & abbrev_state == "MG"),
+    !(name_muni %in% lista_muni_es & abbrev_state == "ES"),
+    !(name_muni %in% lista_muni_to & abbrev_state == "TO"),
+    !(name_muni %in% lista_muni_mt & abbrev_state == "MT")
+  ) |>
+  st_make_valid() |>
+  st_union() |>
+  st_as_sf() |>
+  mutate(area = "Centro-Sul")
+```
+
+```{r}
+ggplot() +
+
+  # Brasil inteiro
+  geom_sf(
+    data = brasil,
+    aes(fill = "Brasil"),
+    color = "#B8B8B8",
+    linewidth = 0.4
+  ) +
+
+  # Seu recorte
+  geom_sf(
+    data = centro_sul,
+    aes(fill = "Centro-Sul"),
+    color = "#173F4A",
+    linewidth = 0.7
+  ) +
+
+  scale_fill_manual(
+    name = NULL,
+    values = c(
+      "Brasil" = "#E5E5E5",
+      "Centro-Sul" = "#3A7D8C"
+    )
+  ) +
+
+  labs(
+    title = "Região Geoeconômica Centro-Sul do Brasil",
+    subtitle = "Área de monitoramento",
+    caption = "Fonte: IBGE (via geobr)"
+  ) +
+
+  theme_void() +
+
+  theme(
+    plot.title = element_text(
+      family = "serif",
+      face = "bold",
+      size = 20,
+      color = "#173F4A",
+      hjust = 0.5
+    ),
+
+    plot.subtitle = element_text(
+      family = "serif",
+      size = 13,
+      color = "#555555",
+      hjust = 0.5
+    ),
+
+    legend.position = "right",
+
+    legend.text = element_text(
+      family = "serif",
+      size = 11
+    ),
+
+    plot.caption = element_text(
+      family = "serif",
+      size = 9,
+      hjust = 1
+    )
+  )
+```
+
+
+
+
+
+
+
+
+
+
+
 
