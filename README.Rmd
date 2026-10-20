@@ -286,8 +286,6 @@ df_sf <- df |>
 
 #AGORA FAZER O RECORTE PARA A REGIÃO GEOECONÔMICA CENTRO-SUL DO BRASIL
 
-#1) BAIXAR O SHP DE MUNICÍPIOS DO BRASIL, NO SITE DO IBGE
-#   DEPOIS DAR UMA OLHADA NO BANCO DE DADOS 
 
 ```{r}
 micro_regiao |> 
@@ -426,70 +424,241 @@ centro_sul <- municipios |>
 ```
 
 ```{r}
-ggplot() +
+library(sf)
+library(ggplot2)
+library(dplyr)
+library(geobr)
 
-  # Brasil inteiro
+if (!require("rnaturalearth")) install.packages("rnaturalearth")
+if (!require("rnaturalearthdata")) install.packages("rnaturalearthdata")
+if (!require("ggspatial")) install.packages("ggspatial")
+
+library(rnaturalearth)
+library(ggspatial)
+
+# ==============================================================================
+# 1. CARREGAMENTO DAS BASES ESPACIAIS
+# ==============================================================================
+america_sul   <- ne_countries(continent = "south america", returnclass = "sf")
+brasil_pais   <- read_country(year = 2020, showProgress = FALSE)
+todos_estados <- read_state(year = 2020, showProgress = FALSE)
+municipios    <- read_municipality(year = 2020, showProgress = FALSE)
+micro_regiao  <- read_micro_region(year = 2020, showProgress = FALSE)
+
+# Carregamento e filtro inicial dos Biomas
+biomas <- read_biomes(year = 2019, showProgress = FALSE) |> 
+  filter(name_biome %in% c("Cerrado", "Mata Atlântica", "Pantanal", "Pampa"))
+
+# ==============================================================================
+# 2. DEFINIÇÃO DAS LISTAS E RECORTE DOS MUNICÍPIOS
+# ==============================================================================
+mg_list_off <- c("Januária", "Janaúba", "Montes Claros", "Salinas", "Grão Mogol", 
+                 "Araçuaí", "Almenara", "Nanuque", "Pedra Azul")
+es_list_off <- c("Barra de São Francisco", "Montanha", "São Mateus")
+to_list_on  <- c("Rio Formoso", "Gurupi", "Dianópolis")
+mt_list_on  <- c("Alto Pantanal", "Cuiabá", "Primavera do Leste", "Rondonópolis", 
+                 "Alto Araguaia", "Tesouro", "Médio Araguaia")
+
+cntr  <- st_centroid(municipios)
+coord <- st_coordinates(cntr)
+
+municipios <- municipios |> 
+  mutate(
+    longitude = coord[, "X"],
+    latitude  = coord[, "Y"]
+  ) 
+
+cntr <- st_transform(cntr, st_crs(micro_regiao))
+cntr_classificado <- st_join(
+  cntr, 
+  micro_regiao |> select(geometry, name_micro), 
+  join = st_within
+) 
+
+lista_muni_mg <- cntr_classificado |> 
+  filter(abbrev_state == "MG", name_micro %in% mg_list_off) |> 
+  pull(name_muni)
+
+lista_muni_es <- cntr_classificado |> 
+  filter(abbrev_state == "ES", name_micro %in% es_list_off) |> 
+  pull(name_muni)
+
+lista_muni_to <- cntr_classificado |> 
+  filter(abbrev_state == "TO", !(name_micro %in% to_list_on)) |> 
+  pull(name_muni)
+
+lista_muni_mt <- cntr_classificado |> 
+  filter(abbrev_state == "MT", !(name_micro %in% mt_list_on)) |> 
+  pull(name_muni)
+
+ufs_centro_sul <- c("RS", "SC", "PR", "SP", "MS", "RJ", "ES", "GO", "MT", "MG", "TO", "DF")
+
+# Seleção dos municípios filtrados
+centro_sul <- municipios |>
+  filter(
+    abbrev_state %in% ufs_centro_sul,
+    !(name_muni %in% lista_muni_mg & abbrev_state == "MG"),
+    !(name_muni %in% lista_muni_es & abbrev_state == "ES"),
+    !(name_muni %in% lista_muni_to & abbrev_state == "TO"),
+    !(name_muni %in% lista_muni_mt & abbrev_state == "MT")
+  )
+
+# ==============================================================================
+# 3. UNIFICAÇÃO DA MANCHA SÓLIDA E RECORTE DOS BIOMAS
+# ==============================================================================
+
+# Desativa temporariamente a geometria esférica S2 para evitar erro topológico de Loop/Edge
+sf_use_s2(FALSE)
+
+# Unificar em uma mancha geográfica única sem divisões internas
+centro_sul_solido <- centro_sul |> 
+  st_make_valid() |> 
+  st_union() |> 
+  st_make_valid()
+
+# Validação e intersecção dos biomas
+biomas_validos <- biomas |> 
+  st_make_valid()
+
+biomas_cs <- st_intersection(biomas_validos, centro_sul_solido) |> 
+  st_make_valid()
+
+# Separar estados do Centro-Sul para destaque de borda
+estados_cs <- todos_estados |> filter(abbrev_state %in% ufs_centro_sul)
+
+# Reativa o S2 para os passos seguintes
+sf_use_s2(TRUE)
+
+# ==============================================================================
+# 4. CONSTRUÇÃO DO MAPA
+# ==============================================================================
+figura1 <- ggplot() +
+
+  # Camada 1: América do Sul
   geom_sf(
-    data = brasil,
-    aes(fill = "Brasil"),
-    color = "#B8B8B8",
-    linewidth = 0.4
+    data = america_sul,
+    fill = "#F0F0F0",
+    color = "#D0D0D0",
+    linewidth = 0.2
   ) +
 
-  # Seu recorte
+  # Camada 2: Brasil (fundo)
   geom_sf(
-    data = centro_sul,
-    aes(fill = "Centro-Sul"),
-    color = "#173F4A",
-    linewidth = 0.7
+    data = brasil_pais,
+    fill = "#E4E4E4",
+    color = NA
   ) +
 
-  scale_fill_manual(
-    name = NULL,
-    values = c(
-      "Brasil" = "#E5E5E5",
-      "Centro-Sul" = "#3A7D8C"
+  # Camada 3: Biomas recortados no Centro-Sul (color = NA remove ruídos/pontos brancos)
+  geom_sf(
+    data = biomas_cs,
+    aes(fill = name_biome),
+    color = NA,
+    linewidth = 0
+  ) +
+
+  # Camada 4: Todos os estados do Brasil (linhas sutis cinzas)
+  geom_sf(
+    data = todos_estados,
+    fill = NA,
+    color = "#B0B0B0",
+    linewidth = 0.25
+  ) +
+
+  # Camada 5: Destaque estaduais no Centro-Sul (linhas brancas limpas)
+  geom_sf(
+    data = estados_cs,
+    fill = NA,
+    color = "white",
+    linewidth = 0.35
+  ) +
+
+  # --- ADIÇÃO DA ROSA DOS VENTOS (NORTE) ---
+  annotation_north_arrow(
+    location = "tl",
+    which_north = "true",
+    pad_x = unit(0.6, "cm"),
+    pad_y = unit(0.6, "cm"),
+    style = north_arrow_fancy_orienteering(
+      fill = c("black", "white"),
+      line_col = "black"
     )
   ) +
 
-  labs(
-    title = "Região Geoeconômica Centro-Sul do Brasil",
-    subtitle = "Área de monitoramento",
-    caption = "Fonte: IBGE (via geobr)"
+  # --- ADIÇÃO DA ESCALA GRÁFICA ---
+  annotation_scale(
+    location = "br",
+    width_hint = 0.25,
+    style = "ticks",
+    unit_category = "metric",
+    text_size = 8
   ) +
 
-  theme_void() +
+  # Paleta de Cores dos Biomas
+  scale_fill_manual(
+    name = "Biomas (Centro-Sul)",
+    values = c(
+      "Cerrado"        = "#88AB75",
+      "Mata Atlântica" = "#3B6E47",
+      "Pantanal"       = "#CBD588",
+      "Pampa"          = "#A2B997"
+    )
+  ) +
 
+  # Enquadramento Geográfico
+  coord_sf(
+    xlim = c(-74, -34),
+    ylim = c(-34, 5),
+    expand = FALSE
+  ) +
+
+  # Rótulos
+  labs(
+    title = "Biomas na Região Geoeconômica Centro-Sul do Brasil",
+    caption = "Fonte: IBGE (via geobr) e Natural Earth.\nRecorte elaborado pela autora com base em Geiger (1964)."
+  ) +
+
+  # Tema Ajustado
+  theme_void() +
   theme(
     plot.title = element_text(
-      family = "serif",
-      face = "bold",
-      size = 20,
-      color = "#173F4A",
-      hjust = 0.5
-    ),
-
-    plot.subtitle = element_text(
-      family = "serif",
       size = 13,
-      color = "#555555",
-      hjust = 0.5
+      face = "bold",
+      color = "black",
+      hjust = 0.5,
+      margin = margin(b = 10)
     ),
-
-    legend.position = "right",
-
-    legend.text = element_text(
-      family = "serif",
-      size = 11
-    ),
-
     plot.caption = element_text(
-      family = "serif",
-      size = 9,
-      hjust = 1
-    )
+      size = 8,
+      color = "black",
+      hjust = 1,
+      margin = margin(t = 10)
+    ),
+    legend.position = c(0.22, 0.25),
+    legend.title = element_text(size = 9, face = "bold"),
+    legend.text = element_text(size = 8),
+    legend.background = element_rect(fill = alpha("white", 0.8), color = NA),
+    legend.box.margin = margin(6, 6, 6, 6),
+    plot.background = element_rect(fill = "white", color = NA),
+    panel.background = element_rect(fill = "white", color = NA),
+    plot.margin = margin(12, 12, 12, 12)
   )
+
+# Exibir
+print(figura1)
+
+# Salvar
+ggsave(
+  filename = "Figura_1_Centro_Sul_Biomas_Corrigido.png",
+  plot = figura1,
+  width = 18,
+  height = 14,
+  units = "cm",
+  dpi = 600,
+  bg = "white"
+)
 ```
+
 
 
 
