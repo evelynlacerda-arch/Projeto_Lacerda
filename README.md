@@ -637,16 +637,14 @@ figura1 <- ggplot() +
     text_size = 8
   ) +
 
-  # Paleta de Cores dos Biomas
-  scale_fill_manual(
-    name = "Biomas (Centro-Sul)",
-    values = c(
-      "Cerrado"        = "#88AB75",
-      "Mata Atlântica" = "#3B6E47",
-      "Pantanal"       = "#CBD588",
-      "Pampa"          = "#A2B997"
-    )
-  ) +
+ # Paleta acessível para os biomas
+scale_fill_viridis_d(
+  name = "Biomas (Centro-Sul)",
+  option = "D",
+  begin = 0.1,
+  end = 0.9,
+  direction = 1
+) +
 
   # Enquadramento Geográfico
   coord_sf(
