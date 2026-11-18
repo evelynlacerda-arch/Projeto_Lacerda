@@ -14,6 +14,8 @@ Email: evelyn.lacerda@unesp.br
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
+#CONFIGURAÇÃO GLOBAL DOS BLOCOS DE CÓDIGO
+
 ```{r, include=FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -27,107 +29,165 @@ knitr::opts_chunk$set(
 
 ## Legenda: 
 
-- collapse = true = aparecer o código e o resultado juntos (bom para organização). 
-- warning = false = não mostre avisos quando o este bloco de código for executado.
-- message = false = não mostrar mensagens dos pacotes carregados que não fazem parte da análise de dados.  
-- eval = false = não execute o código deste bloco, apenas mostre o código no documento.
+Nesta etapa, são definidas as configurações gerais de execução e apresentação dos blocos de código no documento R Markdown.
 
-#ADICIONANDO LIVRARIAS 
+collapse = TRUE: reúne o código e sua saída em um mesmo bloco, facilitando a organização e a leitura.
+
+warning = FALSE: oculta mensagens de aviso (warnings) durante a execução.
+
+error = FALSE: impede que erros sejam exibidos no documento final.
+
+message = FALSE: oculta mensagens informativas geradas durante a execução, como aquelas relacionadas ao carregamento de pacotes.
+
+eval = TRUE: permite que os códigos sejam executados.
+
+comment = "#>": define o prefixo utilizado para identificar as saídas de texto produzidas pelo código.
+
+## CARREGAMENTO DE PACOTES (BIBLIOTECAS)
+# Nesta etapa, são carregados os pacotes necessários para a execução das análises, manipulação de dados, processamento de informações geoespaciais e elaboração de gráficos.
+
 ```{r}
-library(tidyverse)
+# Manipulação, organização e visualização de dados.
+library(tidyverse)  
+# Elaboração e personalização de gráficos científicos.
 library(ggpubr)
+# Manipulação e processamento de dados raster.
 library(terra)
+# Obtenção de dados geoespaciais oficiais do Brasil.
 library(geobr)
+# Análises estatísticas e ecológicas multivariadas.
 library(vegan)
+# Manipulação de dados geográficos vetoriais.
 library(sf)
+# Seleção interativa de cores para gráficos.
 library(colourpicker)
 ```
-## Legenda: 
-Ao carregar pacotes, carregamos as funções das diferentes bibliotecas. 
 
-- tidyverse: coleção de pacotes para ciências de dados. Inclui: dplyr, ggplot2, readr, tibble, string etc. 
-- geobr: Baixa mapas oficiais do IBGE, não precisando baixar shapefiles manualmente. 
-- sf: Pacote mais importante para os dados espaciais. Permite: ler shapefiles, transformar coordenadas, fazer recortes espaciais e unir polígonos. 
-- ggpubr: Facilita gráficos científicos. 
-- dplyr: Manipulação de tabelas. Exemplos: filter(), mutate(), select(), summarise(). 
-- ggplot2: Construção de gráficos.
-
-#VAMOS EXTRAIR SHAPES, FORMATOS, VAI ESTAR O BRASIL COM OS BIOMAS E REGIÕES 
-#Criamos 3 objetos (Brasil, biomes e regioes)
+# EXTRAÇÃO DE DADOS GEOGRÁFICOS (SHAPEFILES)
+# Nesta etapa, são obtidos os arquivos vetoriais que representam os limites territoriais do Brasil, seus biomas, regiões, municípios e microrregiões.
 
 ```{r}
+
+# Limites territoriais do Brasil
 brasil <- read_country(showProgress = FALSE, year = 2020)
-
+# Delimitação dos biomas brasileiros
 biomes <- read_biomes(showProgress = FALSE, year = 2019)
-
+# Divisão territorial em grandes regiões
 regioes <- read_region(showProgress = FALSE, year = 2020)
-
+# Limites territoriais dos municípios
 municipios <- read_municipality(showProgress = FALSE, year = 2020)
-
+# Delimitação das microrregiões geográficas
 micro_regiao <- read_micro_region(showProgress = FALSE, year = 2022)
 ```
+
+
 ```{r}
-## Visualização dos mapas: Brasil, Biomas e Regiões
+# VISUALIZAÇÃO CARTOGRÁFICA DO TERRITÓRIO BRASILEIRO
 
-# Mapa 1 — Contorno do Brasil
+# Nesta etapa, são elaborados três mapas temáticos para representar o contorno territorial do Brasil, a distribuição de seus biomas e a divisão do país em grandes regiões. 
 
-map_country <- ggplot(brasil) +
-  geom_sf(
-    fill = "#8A7AA6",
-    color = "#FAF9F6",
-    linewidth = 0.8
-  ) +
-  labs(
-    title    = "Brasil",
-    subtitle = "Território Nacional",
-    caption  = "Fonte: IBGE via geobr"
-  ) +
-  theme_void(base_family = "serif") +
+# São utilizadas diferentes paletas de cores e configurações de elementos gráficos para personalizar a apresentação dos mapas.
+
+
+# Paleta principal
+cores_projeto <- c(
+  azul_marinho  = "#08306B",
+  azul_profundo = "#08519C",
+  azul_medio    = "#2171B5",
+  azul_oceano   = "#4292C6",
+  azul_celeste  = "#6BAED6",
+  azul_nevoa    = "#9ECAE1",
+  azul_gelo     = "#C6DBEF"
+)
+
+# Cores complementares
+cor_fundo  <- "#F4F8FA"
+cor_texto  <- "#263746"
+cor_borda  <- "#FFFFFF"
+
+
+# TEMA GRÁFICO PADRONIZADO
+# Configurações compartilhadas pelos mapas do projeto.
+
+tema_mapa <- theme_void(base_family = "sans") +
   theme(
-    plot.background  = element_rect(fill = "#FAF9F6", color = NA),
-    panel.background = element_rect(fill = "#FAF9F6", color = NA),
-    plot.title       = element_text(
-      color = "#2E4A62",
+    plot.background = element_rect(
+      fill = cor_fundo,
+      color = NA
+    ),
+    panel.background = element_rect(
+      fill = cor_fundo,
+      color = NA
+    ),
+    plot.title = element_text(
+      color = cor_texto,
       size = 22,
       face = "bold",
       hjust = 0.5,
       margin = margin(t = 16, b = 4)
     ),
-    plot.subtitle    = element_text(
-      color = "#2E4A62",
+    plot.subtitle = element_text(
+      color = cor_texto,
       size = 13,
       hjust = 0.5,
       margin = margin(b = 8)
     ),
-    plot.caption     = element_text(
-      color = "#2E4A62",
+    plot.caption = element_text(
+      color = cor_texto,
       size = 8,
       hjust = 1,
       margin = margin(b = 10, r = 12)
     ),
+    legend.title = element_text(
+      color = cor_texto,
+      size = 10,
+      face = "bold"
+    ),
+    legend.text = element_text(
+      color = cor_texto,
+      size = 9
+    ),
+    legend.position = "right",
     plot.margin = margin(20, 20, 10, 20)
   )
 
 
-# Paleta para os biomas
+# MAPA 1 — CONTORNO DO BRASIL
+
+map_country <- ggplot(brasil) +
+  geom_sf(
+    fill = cores_projeto["azul_medio"],
+    color = cor_borda,
+    linewidth = 0.8
+  ) +
+  labs(
+    title = "Brasil",
+    subtitle = "Território Nacional",
+    caption = "Fonte: IBGE via geobr"
+  ) +
+  tema_mapa
+
+
+# PALETA PARA OS BIOMAS
+# Cada categoria recebe uma tonalidade de azul.
 
 biome_colors <- c(
-  "Amazônia"       = "#1b4332",
-  "Cerrado"        = "#d4a017",
-  "Mata Atlântica" = "#40916c",
-  "Caatinga"       = "#e76f51",
-  "Pampa"          = "#a7c957",
-  "Pantanal"       = "#4895ef",
-  "Sistema Costeiro" = "#90e0ef"
+  "Amazônia"         = "#08306B",
+  "Cerrado"          = "#2171B5",
+  "Mata Atlântica"   = "#4292C6",
+  "Caatinga"         = "#08519C",
+  "Pampa"            = "#6BAED6",
+  "Pantanal"         = "#9ECAE1",
+  "Sistema Costeiro" = "#C6DBEF"
 )
 
 
-# Mapa 2 — Biomas
+# MAPA 2 — BIOMAS DO BRASIL
 
 map_biomes <- ggplot(biomes) +
   geom_sf(
     aes(fill = name_biome),
-    color = "#1a1a2e",
+    color = cor_borda,
     linewidth = 0.4
   ) +
   scale_fill_manual(
@@ -135,44 +195,30 @@ map_biomes <- ggplot(biomes) +
     name = "Bioma"
   ) +
   labs(
-    title    = "Biomas do Brasil",
+    title = "Biomas do Brasil",
     subtitle = "Distribuição dos biomas continentais e costeiros",
-    caption  = "Fonte: IBGE via geobr"
+    caption = "Fonte: IBGE via geobr"
   ) +
-  theme_void(base_family = "serif") +
-  theme(
-    plot.caption = element_text(
-      size = 8,
-      hjust = 1,
-      margin = margin(b = 10, r = 12)
-    ),
-    legend.title = element_text(
-      size = 10,
-      face = "bold"
-    ),
-    legend.text = element_text(size = 9),
-    legend.position = "right",
-    plot.margin = margin(20, 20, 10, 20)
-  )
+  tema_mapa
 
 
-# Paleta para as regiões
+# PALETA PARA AS GRANDES REGIÕES
 
 region_colors <- c(
-  "Norte"        = "#FAD1E3",
-  "Nordeste"     = "#F7A1C4",
-  "Centro-Oeste" = "#E75480",
-  "Sudeste"      = "#C2185B",
-  "Sul"          = "#880E4F"
+  "Norte"        = "#08306B",
+  "Nordeste"     = "#2171B5",
+  "Centro-Oeste" = "#4292C6",
+  "Sudeste"      = "#6BAED6",
+  "Sul"          = "#9ECAE1"
 )
 
 
-# Mapa 3 — Grandes Regiões do Brasil
+# MAPA 3 — GRANDES REGIÕES DO BRASIL
 
 map_regioes <- ggplot(regioes) +
   geom_sf(
     aes(fill = name_region),
-    color = "#1a1a2e",
+    color = cor_borda,
     linewidth = 0.5
   ) +
   scale_fill_manual(
@@ -180,35 +226,24 @@ map_regioes <- ggplot(regioes) +
     name = "Região"
   ) +
   labs(
-    title    = "Grandes Regiões do Brasil",
+    title = "Grandes Regiões do Brasil",
     subtitle = "Divisão regional do território brasileiro",
-    caption  = "Fonte: IBGE via geobr"
+    caption = "Fonte: IBGE via geobr"
   ) +
-  theme_void(base_family = "serif") +
-  theme(
-    plot.caption = element_text(
-      size = 8,
-      hjust = 1,
-      margin = margin(b = 10, r = 12)
-    ),
-    legend.title = element_text(
-      size = 10,
-      face = "bold"
-    ),
-    legend.text = element_text(size = 9),
-    legend.position = "right",
-    plot.margin = margin(20, 20, 10, 20)
-  )
+  tema_mapa
 
 
-# Exibir os mapas
+# EXIBIR OS MAPAS
 
 print(map_country)
 print(map_biomes)
 print(map_regioes)
+
 ```
 
-#FAZER O PRIMEIRO OBJETO DOS DADOS BRUTOS DATA FRAME - DF
+## PREPARAÇÃO DO BANCO DE DADOS DE XCO2
+# Leitura dos dados brutos, correção do ano e aplicação dos filtros.
+
 #OS 20 ANOS SÃO PQ OS DADOS ESTÃO 20 ANOS A FRENTE, POR ISSO A MODIFICAÇÃO PARA MENOS
 ```{r}
 df <- read_rds("data-raw/data-set-xco2-br.rds") |> 
@@ -218,20 +253,22 @@ df <- read_rds("data-raw/data-set-xco2-br.rds") |>
     xco2_quality_flag == 0
     )
 ```
-#DAR UMA OLHADINHA NO BANCO DE DADOS E TAMBÉM FILTRAR O quality_flag 
+
+## INSPEÇÃO DA ESTRUTURA DO BANCO DE DADOS
+# Visualização das variáveis, dos tipos de dados e de alguns registros. 
 ```{r}
 glimpse(df)
 ```
 
-#Queremos ver se os pontos amostrados dos nossos dados vão cair em cima da região de foco 
-
+## SELEÇÃO DE UMA AMOSTRA ALEATÓRIA
+# Seleção de 1.000 observações para verificar a distribuição espacial dos pontos amostrados em relação à região de estudo.
 ```{r}
 df_amostra <- df |> 
   sample_n(1000)
 ```
 
-#PONTOS DE xco2 DENTRO DOS BIOMAS (ESTÁ DENTRO DA MINHA ÁREA DE ESTUDO?)
-
+# DISTRIBUIÇÃO ESPACIAL DOS PONTOS DE XCO2 NOS BIOMAS
+# Sobreposição dos pontos amostrados às áreas dos biomas brasileiros para verificar sua distribuição geográfica.
 ```{r}
 biomes |> 
   ggplot() +
@@ -253,7 +290,8 @@ biomes |>
   )
 ```
 
-## Pontos de XCO2 dentro dos estados
+# DISTRIBUIÇÃO ESPACIAL DOS PONTOS DE XCO2 NAS GRANDES REGIÕES
+# Sobreposição dos pontos amostrados às cinco grandes regiões brasileiras.
 ```{r}
 regioes |> 
   ggplot() +
@@ -275,7 +313,8 @@ regioes |>
   )
 ```
 
-# Transformar o df de XCO2 em objeto espacial (sf)
+# CONVERSÃO DO BANCO DE DADOS DE XCO2 EM OBJETO ESPACIAL (SF)
+# Transformação das coordenadas geográficas em uma geometria de pontos, mantendo as colunas originais do banco de dados.
 ```{r}
 df_sf <- df |> 
   st_as_sf(
@@ -286,7 +325,7 @@ df_sf <- df |>
 
 #AGORA FAZER O RECORTE PARA A REGIÃO GEOECONÔMICA CENTRO-SUL DO BRASIL
 
-
+#Etapa 1 — Visualização das microrregiões
 ```{r}
 micro_regiao |> 
   filter(abbrev_state == "MT") |> 
@@ -304,7 +343,7 @@ micro_regiao |>
   scale_fill_viridis_d()
 ```
 
-
+#Etapa 2 — Definição das microrregiões incluídas e excluídas
 ```{r}
 mg_list_off <- c("Januária","Janaúba","Montes Claros", "Salinas", "Grão Mogol", "Araçuaí", "Almenara","Nanuque",
                  "Pedra Azul")
@@ -359,7 +398,7 @@ lista_muni_mt <- cntr_classificado |>
   pull(name_muni)
 ```
 
-
+#Etapa 3 - Visualização da delimitação preliminar da região Centro-Sul
 ```{r}
 estados <- c("RS","SC","PR","SP","MS",
              "RJ","ES","GO","MT","MG","TO","DF")
@@ -384,6 +423,7 @@ ufs_centro_sul <- c("RS", "SC", "PR", "SP", "MS",
 
 ```
 
+#Bloco 4 — Definição das unidades da Federação que compõem o recorte Centro-Sul
 ```{r}
 # Selecionar os municípios que pertencem ao recorte
 centro_sul <- municipios |>
@@ -402,6 +442,7 @@ centro_sul <- municipios |>
 
 ```
 
+#Bloco 5 — Seleção dos municípios e delimitação final da região Centro-Sul
 ```{r}
 # Estados que fazem parte do recorte
 ufs_centro_sul <- c("RS", "SC", "PR", "SP", "MS",
@@ -423,42 +464,65 @@ centro_sul <- municipios |>
   mutate(area = "Centro-Sul")
 ```
 
+
+# # MAPA 1: Delimitação Geoeconômica do Centro-Sul (Geiger, 1964) e Distribuição Espacial dos Biomas (FAPESP)
+
 ```{r}
+# ================================================================
+# 0. CARREGAMENTO DE PACOTES E INSTALAÇÃO AUTOMÁTICA
+# ================================================================
 library(sf)
 library(ggplot2)
 library(dplyr)
 library(geobr)
 
+# Verifica se os pacotes auxiliares estão instalados; se não estiverem, instala automaticamente
 if (!require("rnaturalearth")) install.packages("rnaturalearth")
 if (!require("rnaturalearthdata")) install.packages("rnaturalearthdata")
 if (!require("ggspatial")) install.packages("ggspatial")
 
-library(rnaturalearth)
-library(ggspatial)
+# ================================================================
 
-# ==============================================================================
+library(rnaturalearth)
+# Baixa fronteiras globais e continentais (usado para a América do Sul)
+library(ggspatial)
+# Adiciona elementos cartográficos obrigatórios (rosa dos ventos e escala)
+
+
+# ================================================================
 # 1. CARREGAMENTO DAS BASES ESPACIAIS
-# ==============================================================================
+# ================================================================
+
+# Baixa o contorno dos países da América do Sul como objeto espacial (sf) para servir de fundo
 america_sul   <- ne_countries(continent = "south america", returnclass = "sf")
+
+# Baixa os limites oficiais do IBGE (ano de referência 2020) sem poluir o console com barras de progresso
 brasil_pais   <- read_country(year = 2020, showProgress = FALSE)
 todos_estados <- read_state(year = 2020, showProgress = FALSE)
 municipios    <- read_municipality(year = 2020, showProgress = FALSE)
 micro_regiao  <- read_micro_region(year = 2020, showProgress = FALSE)
 
-# Carregamento e filtro inicial dos Biomas
+# Baixa os biomas brasileiros (base IBGE 2019) e já filtra apenas os 4 que ocorrem no Centro-Sul
 biomas <- read_biomes(year = 2019, showProgress = FALSE) |> 
   filter(name_biome %in% c("Cerrado", "Mata Atlântica", "Pantanal", "Pampa"))
 
-# ==============================================================================
+# ================================================================
 # 2. DEFINIÇÃO DAS LISTAS E RECORTE DOS MUNICÍPIOS
-# ==============================================================================
+# ================================================================
+
+# A divisão geoeconômica (Pedro Pinchas Geiger) não respeita limites estaduais exatos. Por isso, definimos microrregiões específicas que entram ou saem dos estados de transição:
+
+# Microrregiões de MG e ES que ficam DE FORA
 mg_list_off <- c("Januária", "Janaúba", "Montes Claros", "Salinas", "Grão Mogol", 
                  "Araçuaí", "Almenara", "Nanuque", "Pedra Azul")
 es_list_off <- c("Barra de São Francisco", "Montanha", "São Mateus")
+
+# Microrregiões de TO e MT que ENTRAM no Centro-Sul
 to_list_on  <- c("Rio Formoso", "Gurupi", "Dianópolis")
 mt_list_on  <- c("Alto Pantanal", "Cuiabá", "Primavera do Leste", "Rondonópolis", 
                  "Alto Araguaia", "Tesouro", "Médio Araguaia")
 
+# Calcula o ponto central (centroide) de cada município brasileiro e extrai suas coordenadas X e Y
 cntr  <- st_centroid(municipios)
 coord <- st_coordinates(cntr)
 
@@ -468,13 +532,17 @@ municipios <- municipios |>
     latitude  = coord[, "Y"]
   ) 
 
+# Garante que os centroides tenham a mesma projeção cartográfica (CRS) das microrregiões
 cntr <- st_transform(cntr, st_crs(micro_regiao))
+
+# Cruzamento espacial: descobre dentro de qual microrregião cada centroide municipal cai
 cntr_classificado <- st_join(
   cntr, 
   micro_regiao |> select(geometry, name_micro), 
   join = st_within
 ) 
 
+# Extrai os nomes exatos dos municípios que devem ser REMOVIDOS de cada estado de borda:
 lista_muni_mg <- cntr_classificado |> 
   filter(abbrev_state == "MG", name_micro %in% mg_list_off) |> 
   pull(name_muni)
@@ -491,9 +559,10 @@ lista_muni_mt <- cntr_classificado |>
   filter(abbrev_state == "MT", !(name_micro %in% mt_list_on)) |> 
   pull(name_muni)
 
+# Lista de todos os estados que compõem total ou parcialmente o Centro-Sul
 ufs_centro_sul <- c("RS", "SC", "PR", "SP", "MS", "RJ", "ES", "GO", "MT", "MG", "TO", "DF")
 
-# Seleção dos municípios filtrados
+# Cria a base final de municípios do Centro-Sul aplicando os filtros de exclusão
 centro_sul <- municipios |>
   filter(
     abbrev_state %in% ufs_centro_sul,
@@ -503,35 +572,36 @@ centro_sul <- municipios |>
     !(name_muni %in% lista_muni_mt & abbrev_state == "MT")
   )
 
-# ==============================================================================
+# ===========================================================
 # 3. UNIFICAÇÃO DA MANCHA SÓLIDA E RECORTE DOS BIOMAS
-# ==============================================================================
+# ===========================================================
 
-# Desativa temporariamente a geometria esférica S2 para evitar erro topológico de Loop/Edge
+# Desliga temporariamente o motor esférico S2; ele costuma travar com erros de geometria ("Loop/Edge") ao fundir milhares de polígonos municipais complexos
 sf_use_s2(FALSE)
 
-# Unificar em uma mancha geográfica única sem divisões internas
+# Dissolve as fronteiras entre todos os municípios selecionados, criando uma única"máscara" externa do Centro-Sul. O st_make_valid() corrige eventuais nós cruzados.
 centro_sul_solido <- centro_sul |> 
   st_make_valid() |> 
   st_union() |> 
   st_make_valid()
 
-# Validação e intersecção dos biomas
+# Corrige possíveis falhas geométricas na camada original dos biomas antes de cortar
 biomas_validos <- biomas |> 
   st_make_valid()
 
+# "Carimba/Corta" os biomas usando a máscara do Centro-Sul (fica apenas o que está dentro) 
 biomas_cs <- st_intersection(biomas_validos, centro_sul_solido) |> 
   st_make_valid()
 
-# Separar estados do Centro-Sul para destaque de borda
+# Filtra os polígonos inteiros dos estados do Centro-Sul para desenhar as divisas depois
 estados_cs <- todos_estados |> filter(abbrev_state %in% ufs_centro_sul)
 
-# Reativa o S2 para os passos seguintes
+# Religa o motor esférico S2 para garantir precisão geográfica na plotagem
 sf_use_s2(TRUE)
 
-# ==============================================================================
+# ==========================================================
 # 4. CONSTRUÇÃO DO MAPA
-# ==============================================================================
+# ==========================================================
 figura1 <- ggplot() +
 
   # Camada 1: América do Sul
