@@ -61,6 +61,12 @@ library(vegan)
 library(sf)
 # Seleção interativa de cores para gráficos.
 library(colourpicker)
+# Carregando as cares e temas
+library(rnaturalearth)
+# Baixa fronteiras globais e continentais (usado para a América do Sul)
+library(ggspatial)
+# Adiciona elementos cartográficos obrigatórios (rosa dos ventos e escala)
+source("R/meus-temas.R")
 ```
 
 # EXTRAÇÃO DE DADOS GEOGRÁFICOS (SHAPEFILES)
@@ -72,86 +78,18 @@ library(colourpicker)
 # Limites territoriais do Brasil
 brasil <- read_country(showProgress = FALSE, year = 2020)
 # Delimitação dos biomas brasileiros
-biomes <- read_biomes(showProgress = FALSE, year = 2019)
+biomas <- read_biomes(showProgress = FALSE, year = 2019)
 # Divisão territorial em grandes regiões
 regioes <- read_region(showProgress = FALSE, year = 2020)
 # Limites territoriais dos municípios
 municipios <- read_municipality(showProgress = FALSE, year = 2020)
 # Delimitação das microrregiões geográficas
 micro_regiao <- read_micro_region(showProgress = FALSE, year = 2022)
+# Delimitação dos Estados
+todos_estados <- read_state(year = 2020, showProgress = FALSE)
 ```
 
 ``` r
-# VISUALIZAÇÃO CARTOGRÁFICA DO TERRITÓRIO BRASILEIRO
-
-# Nesta etapa, são elaborados três mapas temáticos para representar o contorno territorial do Brasil, a distribuição de seus biomas e a divisão do país em grandes regiões. 
-
-# São utilizadas diferentes paletas de cores e configurações de elementos gráficos para personalizar a apresentação dos mapas.
-
-
-# Paleta principal
-cores_projeto <- c(
-  azul_marinho  = "#08306B",
-  azul_profundo = "#08519C",
-  azul_medio    = "#2171B5",
-  azul_oceano   = "#4292C6",
-  azul_celeste  = "#6BAED6",
-  azul_nevoa    = "#9ECAE1",
-  azul_gelo     = "#C6DBEF"
-)
-
-# Cores complementares
-cor_fundo  <- "#F4F8FA"
-cor_texto  <- "#263746"
-cor_borda  <- "#FFFFFF"
-
-
-# TEMA GRÁFICO PADRONIZADO
-# Configurações compartilhadas pelos mapas do projeto.
-
-tema_mapa <- theme_void(base_family = "sans") +
-  theme(
-    plot.background = element_rect(
-      fill = cor_fundo,
-      color = NA
-    ),
-    panel.background = element_rect(
-      fill = cor_fundo,
-      color = NA
-    ),
-    plot.title = element_text(
-      color = cor_texto,
-      size = 22,
-      face = "bold",
-      hjust = 0.5,
-      margin = margin(t = 16, b = 4)
-    ),
-    plot.subtitle = element_text(
-      color = cor_texto,
-      size = 13,
-      hjust = 0.5,
-      margin = margin(b = 8)
-    ),
-    plot.caption = element_text(
-      color = cor_texto,
-      size = 8,
-      hjust = 1,
-      margin = margin(b = 10, r = 12)
-    ),
-    legend.title = element_text(
-      color = cor_texto,
-      size = 10,
-      face = "bold"
-    ),
-    legend.text = element_text(
-      color = cor_texto,
-      size = 9
-    ),
-    legend.position = "right",
-    plot.margin = margin(20, 20, 10, 20)
-  )
-
-
 # MAPA 1 — CONTORNO DO BRASIL
 
 map_country <- ggplot(brasil) +
@@ -167,24 +105,8 @@ map_country <- ggplot(brasil) +
   ) +
   tema_mapa
 
-
-# PALETA PARA OS BIOMAS
-# Cada categoria recebe uma tonalidade de azul.
-
-biome_colors <- c(
-  "Amazônia"         = "#08306B",
-  "Cerrado"          = "#2171B5",
-  "Mata Atlântica"   = "#4292C6",
-  "Caatinga"         = "#08519C",
-  "Pampa"            = "#6BAED6",
-  "Pantanal"         = "#9ECAE1",
-  "Sistema Costeiro" = "#C6DBEF"
-)
-
-
 # MAPA 2 — BIOMAS DO BRASIL
-
-map_biomes <- ggplot(biomes) +
+map_biomes <- ggplot(biomas) +
   geom_sf(
     aes(fill = name_biome),
     color = cor_borda,
@@ -202,19 +124,8 @@ map_biomes <- ggplot(biomes) +
   tema_mapa
 
 
-# PALETA PARA AS GRANDES REGIÕES
-
-region_colors <- c(
-  "Norte"        = "#08306B",
-  "Nordeste"     = "#2171B5",
-  "Centro-Oeste" = "#4292C6",
-  "Sudeste"      = "#6BAED6",
-  "Sul"          = "#9ECAE1"
-)
-
 
 # MAPA 3 — GRANDES REGIÕES DO BRASIL
-
 map_regioes <- ggplot(regioes) +
   geom_sf(
     aes(fill = name_region),
@@ -234,7 +145,6 @@ map_regioes <- ggplot(regioes) +
 
 
 # EXIBIR OS MAPAS
-
 print(map_country)
 ```
 
@@ -302,7 +212,7 @@ df_amostra <- df |>
 # Sobreposição dos pontos amostrados às áreas dos biomas brasileiros para verificar sua distribuição geográfica.
 
 ``` r
-biomes |> 
+biomas |> 
   ggplot() +
   geom_sf(
     aes(fill = name_biome),
@@ -518,38 +428,11 @@ centro_sul <- municipios |>
 
 ``` r
 # ================================================================
-# 0. CARREGAMENTO DE PACOTES E INSTALAÇÃO AUTOMÁTICA
-# ================================================================
-library(sf)
-library(ggplot2)
-library(dplyr)
-library(geobr)
-
-# Verifica se os pacotes auxiliares estão instalados; se não estiverem, instala automaticamente
-if (!require("rnaturalearth")) install.packages("rnaturalearth")
-if (!require("rnaturalearthdata")) install.packages("rnaturalearthdata")
-if (!require("ggspatial")) install.packages("ggspatial")
-
-# ================================================================
-
-library(rnaturalearth)
-# Baixa fronteiras globais e continentais (usado para a América do Sul)
-library(ggspatial)
-# Adiciona elementos cartográficos obrigatórios (rosa dos ventos e escala)
-
-
-# ================================================================
 # 1. CARREGAMENTO DAS BASES ESPACIAIS
 # ================================================================
 
 # Baixa o contorno dos países da América do Sul como objeto espacial (sf) para servir de fundo
 america_sul   <- ne_countries(continent = "south america", returnclass = "sf")
-
-# Baixa os limites oficiais do IBGE (ano de referência 2020) sem poluir o console com barras de progresso
-brasil_pais   <- read_country(year = 2020, showProgress = FALSE)
-todos_estados <- read_state(year = 2020, showProgress = FALSE)
-municipios    <- read_municipality(year = 2020, showProgress = FALSE)
-micro_regiao  <- read_micro_region(year = 2020, showProgress = FALSE)
 
 # Baixa os biomas brasileiros (base IBGE 2019) e já filtra apenas os 4 que ocorrem no Centro-Sul
 biomas <- read_biomes(year = 2019, showProgress = FALSE) |> 
@@ -620,7 +503,9 @@ centro_sul <- municipios |>
     !(name_muni %in% lista_muni_to & abbrev_state == "TO"),
     !(name_muni %in% lista_muni_mt & abbrev_state == "MT")
   )
+```
 
+``` r
 # ===========================================================
 # 3. UNIFICAÇÃO DA MANCHA SÓLIDA E RECORTE DOS BIOMAS
 # ===========================================================
@@ -648,6 +533,17 @@ estados_cs <- todos_estados |> filter(abbrev_state %in% ufs_centro_sul)
 # Religa o motor esférico S2 para garantir precisão geográfica na plotagem
 sf_use_s2(TRUE)
 
+write_rds(centro_sul_solido,"data/centro_sul_solido.rds")
+write_rds(biomas_validos,"data/biomas_validos.rds")
+write_rds(biomas_cs,"data/biomas_cs.rds")
+write_rds(estados_cs,"data/estados_cs.rds")
+```
+
+``` r
+centro_sul_solido <- read_rds("data/centro_sul_solido.rds")
+biomas_validos <- read_rds("data/biomas_validos.rds")
+biomas_cs <- read_rds("data/biomas_cs.rds")
+estados_cs <- read_rds("data/estados_cs.rds")
 # ==========================================================
 # 4. CONSTRUÇÃO DO MAPA
 # ==========================================================
@@ -663,7 +559,7 @@ figura1 <- ggplot() +
 
   # Camada 2: Brasil (fundo)
   geom_sf(
-    data = brasil_pais,
+    data = brasil,
     fill = "#E4E4E4",
     color = NA
   ) +
@@ -765,13 +661,13 @@ scale_fill_viridis_d(
 print(figura1)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
 
 ``` r
 
 # Salvar
 ggsave(
-  filename = "Figura_1_Centro_Sul_Biomas_Corrigido.png",
+  filename = "output/Figura_1_Centro_Sul_Biomas_Corrigido.png",
   plot = figura1,
   width = 18,
   height = 14,
@@ -780,3 +676,50 @@ ggsave(
   bg = "white"
 )
 ```
+
+## Agregação
+
+``` r
+mat_coord_1 <- biomas_cs$geometry[[1]] |> as.matrix()
+mat_coord_2 <- biomas_cs$geometry[[2]] |> as.matrix()
+mat_coord_3 <- biomas_cs$geometry[[3]] |> as.matrix()
+mat_coord_4 <- biomas_cs$geometry[[4]] |> as.matrix()
+
+dist <- 0.25
+lon_min <-min(mat_coord_1[,1],mat_coord_2[,1],mat_coord_3[,1],mat_coord_4[,1])
+lon_max <-max(mat_coord_1[,1],mat_coord_2[,1],mat_coord_3[,1],mat_coord_4[,1])
+lat_min <-min(mat_coord_1[,2],mat_coord_2[,2],mat_coord_3[,2],mat_coord_4[,2])
+lat_max <-max(mat_coord_1[,2],mat_coord_2[,2],mat_coord_3[,2],mat_coord_4[,2]) 
+grid_cs <- expand.grid(lon=seq(lon_min,lon_max,dist),
+                       lat=seq(lat_min,lat_max,dist))
+biomas_cs |> 
+  ggplot() +
+  geom_sf(fill="aquamarine4",color="black") +
+  theme_bw() +
+  geom_point(data=grid_cs,aes(lon,lat), color="red",size=1)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
+
+## filtrar os ponto do grid_cs dos limites
+
+``` r
+grid_cs_cut <- grid_cs |>
+ mutate(
+    flag_cs_1 = def_pol(lon,lat,mat_coord_1),
+    flag_cs_2 = def_pol(lon,lat,mat_coord_2),
+    flag_cs_3 = def_pol(lon,lat,mat_coord_3),
+    flag_cs_4 = def_pol(lon,lat,mat_coord_4),
+    flag_cs = flag_cs_1 | flag_cs_2 | flag_cs_3 | flag_cs_4
+    )
+```
+
+``` r
+plot(grid_cs_cut$lon[grid_cs_cut$flag_cs],grid_cs_cut$lat[grid_cs_cut$flag_cs])
+```
+
+![](README_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->
+
+### retirar a “ilha”
+
+### somente o contorno da área
