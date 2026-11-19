@@ -66,6 +66,7 @@ library(rnaturalearth)
 # Baixa fronteiras globais e continentais (usado para a América do Sul)
 library(ggspatial)
 # Adiciona elementos cartográficos obrigatórios (rosa dos ventos e escala)
+library(nngeo) 
 source("R/meus-temas.R")
 ```
 
@@ -406,10 +407,10 @@ Centro-Sul
 ``` r
 # Estados que fazem parte do recorte
 ufs_centro_sul <- c("RS", "SC", "PR", "SP", "MS",
-                   "RJ", "ES", "GO", "MT", "MG", "TO", "DF")
+                    "RJ", "ES", "GO", "MT", "MG", "TO", "DF")
 
 
-# Selecionar os municípios e dissolver em um único polígono
+# Selecionar os municípios e criar o recorte territorial
 centro_sul <- municipios |>
   filter(
     abbrev_state %in% ufs_centro_sul,
@@ -421,132 +422,86 @@ centro_sul <- municipios |>
   st_make_valid() |>
   st_union() |>
   st_as_sf() |>
+  nngeo::st_remove_holes() |>
+  st_cast("POLYGON") |>
+  mutate(area_m2 = as.numeric(st_area(st_transform(geometry, 5880)))) |>
+  slice_max(area_m2, n = 1, with_ties = FALSE) |>
+  select(-area_m2) |>
   mutate(area = "Centro-Sul")
+
+
+# Visualizar o recorte territorial
+ggplot(centro_sul) +
+  geom_sf(
+    fill = "white",
+    color = "black",
+    linewidth = 0.5
+  ) +
+  theme_void()
 ```
+
+![](README_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
 
 # \# MAPA 1: Delimitação Geoeconômica do Centro-Sul (Geiger, 1964) e Distribuição Espacial dos Biomas (FAPESP)
 
-``` r
-# ================================================================
 # 1. CARREGAMENTO DAS BASES ESPACIAIS
-# ================================================================
 
-# Baixa o contorno dos países da América do Sul como objeto espacial (sf) para servir de fundo
-america_sul   <- ne_countries(continent = "south america", returnclass = "sf")
+``` r
+# América do Sul
+america_sul <- ne_countries(
+  continent = "south america",
+  returnclass = "sf"
+)
 
-# Baixa os biomas brasileiros (base IBGE 2019) e já filtra apenas os 4 que ocorrem no Centro-Sul
-biomas <- read_biomes(year = 2019, showProgress = FALSE) |> 
-  filter(name_biome %in% c("Cerrado", "Mata Atlântica", "Pantanal", "Pampa"))
-
-# ================================================================
-# 2. DEFINIÇÃO DAS LISTAS E RECORTE DOS MUNICÍPIOS
-# ================================================================
-
-# A divisão geoeconômica (Pedro Pinchas Geiger) não respeita limites estaduais exatos. Por isso, definimos microrregiões específicas que entram ou saem dos estados de transição:
-
-# Microrregiões de MG e ES que ficam DE FORA
-mg_list_off <- c("Januária", "Janaúba", "Montes Claros", "Salinas", "Grão Mogol", 
-                 "Araçuaí", "Almenara", "Nanuque", "Pedra Azul")
-es_list_off <- c("Barra de São Francisco", "Montanha", "São Mateus")
-
-# Microrregiões de TO e MT que ENTRAM no Centro-Sul
-to_list_on  <- c("Rio Formoso", "Gurupi", "Dianópolis")
-mt_list_on  <- c("Alto Pantanal", "Cuiabá", "Primavera do Leste", "Rondonópolis", 
-                 "Alto Araguaia", "Tesouro", "Médio Araguaia")
-
-# Calcula o ponto central (centroide) de cada município brasileiro e extrai suas coordenadas X e Y
-cntr  <- st_centroid(municipios)
-coord <- st_coordinates(cntr)
-
-municipios <- municipios |> 
-  mutate(
-    longitude = coord[, "X"],
-    latitude  = coord[, "Y"]
-  ) 
-
-# Garante que os centroides tenham a mesma projeção cartográfica (CRS) das microrregiões
-cntr <- st_transform(cntr, st_crs(micro_regiao))
-
-# Cruzamento espacial: descobre dentro de qual microrregião cada centroide municipal cai
-cntr_classificado <- st_join(
-  cntr, 
-  micro_regiao |> select(geometry, name_micro), 
-  join = st_within
-) 
-
-# Extrai os nomes exatos dos municípios que devem ser REMOVIDOS de cada estado de borda:
-lista_muni_mg <- cntr_classificado |> 
-  filter(abbrev_state == "MG", name_micro %in% mg_list_off) |> 
-  pull(name_muni)
-
-lista_muni_es <- cntr_classificado |> 
-  filter(abbrev_state == "ES", name_micro %in% es_list_off) |> 
-  pull(name_muni)
-
-lista_muni_to <- cntr_classificado |> 
-  filter(abbrev_state == "TO", !(name_micro %in% to_list_on)) |> 
-  pull(name_muni)
-
-lista_muni_mt <- cntr_classificado |> 
-  filter(abbrev_state == "MT", !(name_micro %in% mt_list_on)) |> 
-  pull(name_muni)
-
-# Lista de todos os estados que compõem total ou parcialmente o Centro-Sul
-ufs_centro_sul <- c("RS", "SC", "PR", "SP", "MS", "RJ", "ES", "GO", "MT", "MG", "TO", "DF")
-
-# Cria a base final de municípios do Centro-Sul aplicando os filtros de exclusão
-centro_sul <- municipios |>
+# Biomas brasileiros (IBGE, 2019)
+biomas <- read_biomes(
+  year = 2019,
+  showProgress = FALSE
+) |>
   filter(
-    abbrev_state %in% ufs_centro_sul,
-    !(name_muni %in% lista_muni_mg & abbrev_state == "MG"),
-    !(name_muni %in% lista_muni_es & abbrev_state == "ES"),
-    !(name_muni %in% lista_muni_to & abbrev_state == "TO"),
-    !(name_muni %in% lista_muni_mt & abbrev_state == "MT")
+    name_biome %in% c(
+      "Cerrado",
+      "Mata Atlântica",
+      "Pantanal",
+      "Pampa"
+    )
   )
 ```
 
+# 2. RECUPERAÇÃO DO RECORTE TERRITORIAL
+
 ``` r
-# ===========================================================
-# 3. UNIFICAÇÃO DA MANCHA SÓLIDA E RECORTE DOS BIOMAS
-# ===========================================================
-
-# Desliga temporariamente o motor esférico S2; ele costuma travar com erros de geometria ("Loop/Edge") ao fundir milhares de polígonos municipais complexos
-sf_use_s2(FALSE)
-
-# Dissolve as fronteiras entre todos os municípios selecionados, criando uma única"máscara" externa do Centro-Sul. O st_make_valid() corrige eventuais nós cruzados.
-centro_sul_solido <- centro_sul |> 
-  st_make_valid() |> 
-  st_union() |> 
-  st_make_valid()
-
-# Corrige possíveis falhas geométricas na camada original dos biomas antes de cortar
-biomas_validos <- biomas |> 
-  st_make_valid()
-
-# "Carimba/Corta" os biomas usando a máscara do Centro-Sul (fica apenas o que está dentro) 
-biomas_cs <- st_intersection(biomas_validos, centro_sul_solido) |> 
-  st_make_valid()
-
-# Filtra os polígonos inteiros dos estados do Centro-Sul para desenhar as divisas depois
-estados_cs <- todos_estados |> filter(abbrev_state %in% ufs_centro_sul)
-
-# Religa o motor esférico S2 para garantir precisão geográfica na plotagem
-sf_use_s2(TRUE)
-
-write_rds(centro_sul_solido,"data/centro_sul_solido.rds")
-write_rds(biomas_validos,"data/biomas_validos.rds")
-write_rds(biomas_cs,"data/biomas_cs.rds")
-write_rds(estados_cs,"data/estados_cs.rds")
+# Estados que compõem o Centro-Sul
+ufs_centro_sul <- c(
+  "RS", "SC", "PR", "SP", "MS",
+  "RJ", "ES", "GO", "MT", "MG", "TO", "DF"
+)
 ```
 
+# 3. RECORTE DOS BIOMAS PARA O CENTRO-SUL
+
 ``` r
-centro_sul_solido <- read_rds("data/centro_sul_solido.rds")
-biomas_validos <- read_rds("data/biomas_validos.rds")
-biomas_cs <- read_rds("data/biomas_cs.rds")
-estados_cs <- read_rds("data/estados_cs.rds")
-# ==========================================================
-# 4. CONSTRUÇÃO DO MAPA
-# ==========================================================
+# Desativar temporariamente o motor esférico S2
+s2_status <- sf_use_s2()
+sf_use_s2(FALSE)
+
+# Recortar os biomas utilizando o Centro-Sul
+biomas_cs <- biomas |>
+  st_make_valid() |>
+  st_intersection(centro_sul) |>
+  st_make_valid()
+
+# Selecionar os estados do Centro-Sul para desenhar as divisas
+estados_cs <- todos_estados |>
+  filter(abbrev_state %in% ufs_centro_sul)
+
+# Restaurar o motor esférico S2
+sf_use_s2(s2_status)
+```
+
+\#4. CONSTRUÇÃO DO MAPA
+
+``` r
 figura1 <- ggplot() +
 
   # Camada 1: América do Sul
@@ -564,7 +519,7 @@ figura1 <- ggplot() +
     color = NA
   ) +
 
-  # Camada 3: Biomas recortados no Centro-Sul (color = NA remove ruídos/pontos brancos)
+  # Camada 3: Biomas recortados no Centro-Sul
   geom_sf(
     data = biomas_cs,
     aes(fill = name_biome),
@@ -572,7 +527,7 @@ figura1 <- ggplot() +
     linewidth = 0
   ) +
 
-  # Camada 4: Todos os estados do Brasil (linhas sutis cinzas)
+  # Camada 4: Todos os estados do Brasil
   geom_sf(
     data = todos_estados,
     fill = NA,
@@ -580,7 +535,7 @@ figura1 <- ggplot() +
     linewidth = 0.25
   ) +
 
-  # Camada 5: Destaque estaduais no Centro-Sul (linhas brancas limpas)
+  # Camada 5: Divisas estaduais do Centro-Sul
   geom_sf(
     data = estados_cs,
     fill = NA,
@@ -588,7 +543,7 @@ figura1 <- ggplot() +
     linewidth = 0.35
   ) +
 
-  # --- ADIÇÃO DA ROSA DOS VENTOS (NORTE) ---
+  # Rosa dos ventos
   annotation_north_arrow(
     location = "tl",
     which_north = "true",
@@ -600,7 +555,7 @@ figura1 <- ggplot() +
     )
   ) +
 
-  # --- ADIÇÃO DA ESCALA GRÁFICA ---
+  # Escala gráfica
   annotation_scale(
     location = "br",
     width_hint = 0.25,
@@ -609,29 +564,29 @@ figura1 <- ggplot() +
     text_size = 8
   ) +
 
- # Paleta acessível para os biomas
-scale_fill_viridis_d(
-  name = "Biomas (Centro-Sul)",
-  option = "D",
-  begin = 0.1,
-  end = 0.9,
-  direction = 1
-) +
+  # Paleta dos biomas
+  scale_fill_viridis_d(
+    name = "Biomas (Centro-Sul)",
+    option = "D",
+    begin = 0.1,
+    end = 0.9,
+    direction = 1
+  ) +
 
-  # Enquadramento Geográfico
+  # Enquadramento geográfico
   coord_sf(
     xlim = c(-74, -34),
     ylim = c(-34, 5),
     expand = FALSE
   ) +
 
-  # Rótulos
+  # Título e fonte
   labs(
     title = "Biomas na Região Geoeconômica Centro-Sul do Brasil",
     caption = "Fonte: IBGE (via geobr) e Natural Earth.\nRecorte elaborado pela autora com base em Geiger (1964)."
   ) +
 
-  # Tema Ajustado
+  # Tema
   theme_void() +
   theme(
     plot.title = element_text(
@@ -648,24 +603,48 @@ scale_fill_viridis_d(
       margin = margin(t = 10)
     ),
     legend.position = c(0.22, 0.25),
-    legend.title = element_text(size = 9, face = "bold"),
+    legend.title = element_text(
+      size = 9,
+      face = "bold"
+    ),
     legend.text = element_text(size = 8),
-    legend.background = element_rect(fill = alpha("white", 0.8), color = NA),
+    legend.background = element_rect(
+      fill = alpha("white", 0.8),
+      color = NA
+    ),
     legend.box.margin = margin(6, 6, 6, 6),
-    plot.background = element_rect(fill = "white", color = NA),
-    panel.background = element_rect(fill = "white", color = NA),
+    plot.background = element_rect(
+      fill = "white",
+      color = NA
+    ),
+    panel.background = element_rect(
+      fill = "white",
+      color = NA
+    ),
     plot.margin = margin(12, 12, 12, 12)
   )
-
-# Exibir
-print(figura1)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
+# 5. EXIBIÇÃO E SALVAMENTO
 
 ``` r
 
-# Salvar
+# Exibir o mapa
+print(figura1)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
+
+``` r
+
+# Criar pasta de saída, caso ainda não exista
+dir.create(
+  "output",
+  showWarnings = FALSE,
+  recursive = TRUE
+)
+
+# Salvar a figura
 ggsave(
   filename = "output/Figura_1_Centro_Sul_Biomas_Corrigido.png",
   plot = figura1,
@@ -680,46 +659,46 @@ ggsave(
 ## Agregação
 
 ``` r
-mat_coord_1 <- biomas_cs$geometry[[1]] |> as.matrix()
-mat_coord_2 <- biomas_cs$geometry[[2]] |> as.matrix()
-mat_coord_3 <- biomas_cs$geometry[[3]] |> as.matrix()
-mat_coord_4 <- biomas_cs$geometry[[4]] |> as.matrix()
-
+# Definir a resolução da grade
 dist <- 0.25
-lon_min <-min(mat_coord_1[,1],mat_coord_2[,1],mat_coord_3[,1],mat_coord_4[,1])
-lon_max <-max(mat_coord_1[,1],mat_coord_2[,1],mat_coord_3[,1],mat_coord_4[,1])
-lat_min <-min(mat_coord_1[,2],mat_coord_2[,2],mat_coord_3[,2],mat_coord_4[,2])
-lat_max <-max(mat_coord_1[,2],mat_coord_2[,2],mat_coord_3[,2],mat_coord_4[,2]) 
-grid_cs <- expand.grid(lon=seq(lon_min,lon_max,dist),
-                       lat=seq(lat_min,lat_max,dist))
-biomas_cs |> 
-  ggplot() +
-  geom_sf(fill="aquamarine4",color="black") +
-  theme_bw() +
-  geom_point(data=grid_cs,aes(lon,lat), color="red",size=1)
-```
 
-![](README_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
+# Obter os limites do Centro-Sul
+limites <- st_bbox(centro_sul)
 
-## filtrar os ponto do grid_cs dos limites
+# Criar a grade de coordenadas
+grid_cs <- expand.grid(
+  lon = seq(limites["xmin"], limites["xmax"], by = dist),
+  lat = seq(limites["ymin"], limites["ymax"], by = dist)
+) |>
+  st_as_sf(coords = c("lon", "lat"), crs = st_crs(centro_sul), remove = FALSE) |>
+  st_filter(centro_sul)
 
-``` r
-grid_cs_cut <- grid_cs |>
- mutate(
-    flag_cs_1 = def_pol(lon,lat,mat_coord_1),
-    flag_cs_2 = def_pol(lon,lat,mat_coord_2),
-    flag_cs_3 = def_pol(lon,lat,mat_coord_3),
-    flag_cs_4 = def_pol(lon,lat,mat_coord_4),
-    flag_cs = flag_cs_1 | flag_cs_2 | flag_cs_3 | flag_cs_4
-    )
-```
 
-``` r
-plot(grid_cs_cut$lon[grid_cs_cut$flag_cs],grid_cs_cut$lat[grid_cs_cut$flag_cs])
+# Visualizar a grade sobre o Centro-Sul
+ggplot() +
+  geom_sf(data = centro_sul, fill = "white", color = "black") +
+  geom_sf(data = grid_cs, color = "red", size = 1) +
+  theme_void()
 ```
 
 ![](README_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->
 
-### retirar a “ilha”
+## filtrar os ponto do grid_cs dos limites
 
-### somente o contorno da área
+``` r
+# Filtrar os pontos da grade dentro dos limites do Centro-Sul
+grid_cs_cut <- grid_cs |>
+  st_filter(centro_sul)
+```
+
+``` r
+plot(
+  grid_cs_cut$lon,
+  grid_cs_cut$lat,
+  pch = 20,
+  cex = 0.3,
+  asp = 1
+)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
