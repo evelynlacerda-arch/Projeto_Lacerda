@@ -599,7 +599,6 @@ ggsave(
 ```
 
 
-
 ## Agregação
 ```{r}
 # Definir a resolução da grade
